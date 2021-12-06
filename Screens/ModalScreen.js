@@ -24,7 +24,7 @@ const ModalScreen = () => {
     setDoc(doc(db, 'users', user.uid),{
         id: user.uid,
         displayName: user.displayName,
-        photoURL: image,
+        photoURL: user.photoURL,
         job: job,
         age:age,
         timestamp: serverTimestamp()
@@ -44,17 +44,6 @@ const ModalScreen = () => {
       <Text style={tw("text-xl text-gray-500 p-2 font-bold")}>
         Welcome {user.displayName}
       </Text>
-
-      {/* form start */}
-      <Text style={tw("text-center p-4 font-bold text-red-400")}>
-        Profile Pic
-      </Text>
-      <TextInput
-        value={image}
-        onChangeText={(text) => setimage(text)}
-        style={tw("text-center text-xl pb-2")}
-        placeholder="Enter profile pic"
-      ></TextInput>
       <Text style={tw("text-center p-4 font-bold text-red-400")}>Job</Text>
       <TextInput
         value={job}

@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useLayoutEffect, useState, useRef } from "react";
+import React, { useLayoutEffect, useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -14,41 +14,23 @@ import useAuth from "../hooks/useAuth";
 import tw from "tailwind-rn";
 import { AntDesign, Entypo, Ionicons } from "@expo/vector-icons";
 import Swiper from "react-native-deck-swiper";
-import { onSnapshot, doc } from "firebase/firestore";
+import {
+  onSnapshot,
+  doc,
+  collection,
+  setDoc,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../firebase";
-
-const DUMMY_DATA = [
-  {
-    id: 1913,
-    firstName: "Sonny",
-    lastName: "Man",
-    occupation: "Software Developer",
-    photoURL:
-      "https://upload.wikimedia.org/wikipedia/commons/a/a5/Red_Kitten_01.jpg",
-    age: 21,
-  },
-  {
-    id: 129837,
-    firstName: "Ajayi",
-    lastName: "MGSUan",
-    occupation: "Software ENg",
-    photoURL:
-      "https://cdn1.tedsby.com/tb/large/storage/3/1/3/313774/stuffed-animal-cat-red-kitten-by-anastasia-snagovskaya.jpg",
-    age: 30,
-  },
-  {
-    id: 30812,
-    firstName: "Sonny",
-    lastName: "Man",
-    occupation: "Software Test",
-    photoURL: "https://thumb.mp-farm.com/90447251/preview.jpg",
-    age: 20,
-  },
-];
+import generateId from "../lib/generateid";
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
-  const [profile, setprofile] = useState([]);
+  const [profile, setProfile] = useState([]);
   const swipeRef = useRef(null);
   useLayoutEffect(
     () =>
@@ -57,7 +39,89 @@ const HomeScreen = () => {
           navigation.navigate("Modal");
         }
       }),
-   []);
+    []
+  );
+  useEffect(() => {
+    let unsub;
+    const fetchCards = async () => {
+      const passes = await getDocs(
+        collection(db, "users", user.uid, "passes")
+      ).then((snapshot) => snapshot.docs.map((doc) => doc.id));
+      const swipes = await getDocs(
+        collection(db, "users", user.uid, "swipes")
+      ).then((snapshot) => snapshot.docs.map((doc) => doc.id));
+      const passedUserIds = passes.lenght > 0 ? passes : ["test"];
+      const swipedUserIds = swipes.lenght > 0 ? swipes : ["test"];
+
+      unsub = onSnapshot(
+        query(
+          collection(db, "users"),
+          where("id", "not-in", [...passedUserIds, ...swipedUserIds])
+        ),
+        (snapshot) => {
+          setProfile(
+            snapshot.docs
+              .filter((doc) => doc.id !== user.uid)
+              .map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }))
+          );
+        }
+      );
+    };
+    fetchCards();
+    return unsub;
+  }, []);
+  const swipeLeft = async (cardIndex) => {
+    if (!profile[cardIndex]) return;
+    const userSwiped = profile[cardIndex];
+    console.log(`You swiped PASS on ${userSwiped.displayName}`);
+    setDoc(doc(db, "users", user.uid, "passes", userSwiped.id), userSwiped);
+  };
+  const swipeRight = async (cardIndex) => {
+    if (!profile[cardIndex]) return;
+    const userSwiped = profile[cardIndex];
+    const loggedInProfile = await (await getDoc(doc(db, "users", user.uid))).data();
+    
+    //  check if the user swiped on you
+    getDoc(doc(db, "users", userSwiped.id, "swipes", user.uid)).then(
+      (documentSnapshot) => {
+        if (documentSnapshot.exists()) {
+          // user has matched with you before you matched with them
+          console.log(`Hooray You MACTHED with ${userSwiped.displayName}`);
+          setDoc(
+            doc(db, "users", user.uid, "swipes", userSwiped.id),
+            userSwiped
+          );
+
+          // Create a MATCH!
+          setDoc(doc(db, "matches", generateId(user.uid, userSwiped.id)),{
+            users:{
+              [user.uid]: loggedInProfile,
+              [userSwiped.id]: userSwiped,
+            },
+            usersMatched:  [user.uid, userSwiped.id], 
+            timestamp : serverTimestamp()
+          });
+          navigation.navigate("Match", {
+            loggedInProfile, userSwiped
+          })
+        } else {
+          // USer has swiped as first interaction between the two
+          console.log(`You swiped on ${userSwiped.displayName} (${userSwiped.job})`);
+          setDoc(
+            doc(db, "users", user.uid, "swipes", userSwiped.id),
+            userSwiped
+          );
+        }
+      }
+    );
+    console.log(
+      `you swiped MATCH on ${userSwiped.displayName} (${userSwiped.job})`
+    );
+    setDoc(doc(db, "users", user.uid, "swipes", userSwiped.id), userSwiped);
+  };
   return (
     <SafeAreaView style={tw("flex-1")}>
       {/* Header */}
@@ -74,8 +138,8 @@ const HomeScreen = () => {
           }}
         >
           <Image
-            style={tw("h-14 w-14 rounded-full")}
-            source={{ uri: user.photoURL }}
+            style={tw("h-16 w-16 rounded-full")}
+            source={{ uri: "https://www.gsu.edu/wp-content/themes/gsu-flex-2/images/logo.png"}}
           />
         </TouchableOpacity>
 
@@ -98,11 +162,13 @@ const HomeScreen = () => {
           cardIndex={0}
           animateCardOpacity
           verticalSwipe={false}
-          onSwipedLeft={() => {
+          onSwipedLeft={(cardIndex) => {
             console.log("Swipe Pass");
+            swipeLeft(cardIndex);
           }}
-          onSwipedRight={() => {
+          onSwipedRight={(cardIndex) => {
             console.log("Swipe Match");
+            swipeRight(cardIndex);
           }}
           backgroundColor={"#4FD0E9"}
           overlayLabels={{
@@ -142,10 +208,10 @@ const HomeScreen = () => {
                 >
                   <View>
                     <Text style={tw("text-xl font-bold")}>
-                      {card.firstName} {card.lastName}
+                      {card.displayName}
                     </Text>
 
-                    <Text>{card.occupation}</Text>
+                    <Text>{card.job}</Text>
                   </View>
                   <Text style={tw("text-2xl font-bold")}>{card.age}</Text>
                 </View>
