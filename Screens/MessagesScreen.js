@@ -94,7 +94,7 @@ const MessagesScreen = () => {
             onSubmitEditing={sendMessage}
             value={input}
           />
-          <Button onPress={sendMessage} title="Send" color="#FF5864" />
+          <Button onPress={sendMessage} title="Send" color="#00aeef" />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

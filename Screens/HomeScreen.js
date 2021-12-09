@@ -1,5 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useLayoutEffect, useEffect, useState, useRef } from "react";
+import { Icon } from 'react-native-gradient-icon';
 import {
   View,
   Text,
@@ -138,8 +139,8 @@ const HomeScreen = () => {
           }}
         >
           <Image
-            style={tw("h-16 w-16 rounded-full")}
-            source={{ uri: "https://www.gsu.edu/wp-content/themes/gsu-flex-2/images/logo.png"}}
+            style={tw("h-16 w-16")}
+            source={{ uri: "https://firebasestorage.googleapis.com/v0/b/mentmatcher-590a9.appspot.com/o/newlogo-01.png?alt=media&token=0f280fab-8a48-422e-9c6a-0178668d65da"}}
           />
         </TouchableOpacity>
 
@@ -148,12 +149,14 @@ const HomeScreen = () => {
             navigation.navigate("Chat");
           }}
         >
-          <Ionicons name="chatbubbles-sharp" size={30} color="#FF5864" />
+          <Ionicons name="chatbubbles-sharp" size={30} color="#00aeef" />
+  
         </TouchableOpacity>
       </View>
 
       {/* Swiper   */}
       <View style={tw("flex-1 -mt-6")}>
+        <Text style={tw("text-black px-6 py-6 font-bold text-lg")}>Good luck finding a suitable match</Text>
         <Swiper
           ref={swipeRef}
           containerStyle={{ backgroundColor: "transparent" }}
@@ -213,7 +216,9 @@ const HomeScreen = () => {
 
                     <Text>{card.job}</Text>
                   </View>
-                  <Text style={tw("text-2xl font-bold")}>{card.age}</Text>
+
+                  <Text style={tw("text-2xl font-bold text-red")}>{card.selectedValue}</Text>
+
                 </View>
               </View>
             ) : (
@@ -239,22 +244,26 @@ const HomeScreen = () => {
           }
         />
       </View>
+      
       <View style={tw(" flex flex-row justify-evenly")}>
         <TouchableOpacity
           style={tw(
-            "items-center justify-center rounded-full w-16 h-16 bg-red-200"
+            "items-center justify-center rounded-full w-16 h-16 bg-red-900"
           )}
           onPress={() => swipeRef.current.swipeLeft()}
         >
-          <Entypo name="cross" size={24} />
+          <Entypo name="cross" size={24}  color="#fff"/>
+          <Text style={tw("text-white")}>Pass</Text>
+
         </TouchableOpacity>
         <TouchableOpacity
-          style={tw(
+          style={[tw(
             "items-center justify-center rounded-full w-16 h-16 bg-green-200"
-          )}
+          ),{backgroundColor:"#4FD0E9"}]}
           onPress={() => swipeRef.current.swipeRight()}
         >
-          <Entypo name="heart" size={24} />
+          <Entypo name="heart" size={24} color="#fff"/>
+          <Text style={tw("text-white")}>Match</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
